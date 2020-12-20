@@ -99,17 +99,17 @@ defmodule Vaxin.Error do
   @doc false
   def message_from_predicate(predicate) do
     cond do
-      predicate == (&is_atom/1) ->
-        {"must be an atom", [kind: :is_atom]}
+      predicate == (&String.valid?/1) ->
+        {"must be a string", [kind: :is_string]}
 
       predicate == (&is_binary/1) ->
         {"must be a binary", [kind: :is_binary]}
 
-      predicate == (&is_boolean/1) ->
-        {"must be a boolean", [kind: :is_boolean]}
-
       predicate == (&is_integer/1) ->
         {"must be an integer", [kind: :is_integer]}
+
+      predicate == (&is_boolean/1) ->
+        {"must be a boolean", [kind: :is_boolean]}
 
       predicate == (&is_float/1) ->
         {"must be a float", [kind: :is_float]}
@@ -120,8 +120,11 @@ defmodule Vaxin.Error do
       predicate == (&is_map/1) ->
         {"must be a map", [kind: :is_map]}
 
-      predicate == (&String.valid?/1) ->
-        {"must be a string", [kind: :is_string]}
+      predicate == (&is_list/1) ->
+        {"must be a list", [kind: :is_list]}
+
+      predicate == (&is_atom/1) ->
+        {"must be an atom", [kind: :is_atom]}
 
       true ->
         {"is invalid", [kind: :predicate]}

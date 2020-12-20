@@ -321,6 +321,14 @@ defmodule VaxinTest do
     test ":message option" do
       validator = validate_enum(&is_list/1, &is_integer/1, message: "should be an integer")
 
+      assert validate(validator, 1) ==
+               {:error,
+                %Vaxin.Error{
+                  message: "must be a list",
+                  metadata: [kind: :is_list],
+                  validator: &is_list/1
+                }}
+
       assert validate(validator, [1, "2"]) ==
                {:error,
                 %Vaxin.Error{
