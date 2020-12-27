@@ -309,9 +309,39 @@ defmodule Vaxin do
     end
   end
 
-  @spec validate_number(validator, Keyword.t()) :: validator()
-  def validate_number(validator \\ &is_number/1, options) do
-    combine(validator, fn value ->
+  @doc """
+  Combines `combinator` with a validator that validates the term as a number.
+
+  ## Options
+
+  * `less_than` - the number must be less than this value.
+  * `greater_than` - the number must be greater than this value.
+  * `less_than_or_equal_to` - the number must be less than or equal to this value.
+  * `greater_than_or_equal_to` - the number must be greater than or equal to this value.
+  * `equal_to` - the number must be equal to this value.
+  * `not_equal_to` - the number must be not equal to this value.
+  * `message` - the error message when the number validator fails. Defaults to either:
+    * must be less than %{number}
+    * must be greater than %{number}
+    * must be less than or equal to %{number}
+    * must be greater than or equal to %{number}
+    * must be equal to %{number}
+    * must be not equal to %{number}
+
+  ## Examples
+
+      iex> validator = Vaxin.validate_number(greater_than: 1, less_than: 20)
+      iex> Vaxin.validate(validator, 10)
+      {:ok, 10}
+      iex> {:error, error} = Vaxin.validate(validator, 20)
+      iex> Exception.message(error)
+      "must be less than 20"
+
+  """
+
+  @spec validate_number(validator(), Keyword.t()) :: validator()
+  def validate_number(combinator \\ &is_number/1, options) do
+    combine(combinator, fn value ->
       {message, options} = Keyword.pop(options, :message)
       Vaxin.Number.validate(value, options, message)
     end)
