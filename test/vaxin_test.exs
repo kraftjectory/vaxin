@@ -478,6 +478,24 @@ defmodule VaxinTest do
     end
   end
 
+  describe "transform/2" do
+    test "transforms a value" do
+      validator = transform(noop(), &String.to_integer/1)
+      assert validate(validator, "1") == {:ok, 1}
+
+      validator = transform(&is_binary/1, &String.to_integer/1)
+      assert validate(validator, "1") == {:ok, 1}
+
+      assert validate(validator, 1) ==
+               {:error,
+                %Vaxin.Error{
+                  message: "must be a binary",
+                  metadata: [kind: :is_binary],
+                  validator: &:erlang.is_binary/1
+                }}
+    end
+  end
+
   defp validate_error(validator, data) do
     assert {:error, error} = validate(validator, data)
     Exception.message(error)

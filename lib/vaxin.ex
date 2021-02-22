@@ -464,4 +464,19 @@ defmodule Vaxin do
       |> Vaxin.Enum.validate(each_validator, [], skip_invalid?, into, options[:message])
     end)
   end
+
+  @doc """
+  Returns a validator that always passes and applies the given `transformer`.
+
+  ## Examples
+
+      iex> import Vaxin
+      iex> validator = transform(noop(), &String.to_integer/1)
+      iex> validate(validator, "1")
+      {:ok, 1}
+  """
+  @spec transform(validator(), (any() -> any())) :: validator()
+  def transform(combinator \\ noop(), transformer) do
+    combine(combinator, &{:ok, transformer.(&1)})
+  end
 end
