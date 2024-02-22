@@ -378,6 +378,12 @@ defmodule VaxinTest do
        }}
     end
 
+    test "validates optional key with default value" do
+      validator = validate_key(&is_map/1, "foo", {:optional, default: "bar"}, &is_binary/1)
+
+      assert validate(validator, %{}) == {:ok, %{"foo" => "bar"}}
+    end
+
     test ":message option" do
       validator = validate_key(&is_map/1, "foo", :required, &is_binary/1, message: "is invalid")
 

@@ -214,18 +214,29 @@ defmodule Vaxin do
       iex> Exception.message(error)
       "id must be a tinyint"
 
+      iex> number_validator = validate_number(greater_than_or_equal_to: 1)
+      iex> validator = Vaxin.validate_key(:page, {:optional, default: 1}, number_validator)
+      iex> Vaxin.validate(validator, %{})
+      {:ok, %{page: 1}}
+
   """
-  @spec validate_key(validator(), any(), :required | :optional, validator(), Keyword.t()) ::
+  @spec validate_key(
+          validator(),
+          any(),
+          :required | :optional | {:optional, default: any()},
+          validator(),
+          Keyword.t()
+        ) ::
           validator()
   def validate_key(
         combinator \\ &is_map/1,
         key,
-        required_or_optional,
+        condition,
         value_validator,
         options \\ []
       )
 
-  def validate_key(combinator, key, required_or_optional, value_validator, options) do
+  def validate_key(combinator, key, condition, value_validator, options) do
     combine(combinator, fn map ->
       message = options[:message]
 
@@ -245,17 +256,19 @@ defmodule Vaxin do
           end
 
         :error ->
-          if required?(required_or_optional) do
-            {:error, Error.new(:required, message || "is required", position: {:key, key})}
-          else
-            {:ok, map}
+          case condition do
+            {:optional, [default: default_value]} ->
+              {:ok, Map.put_new(map, key, default_value)}
+
+            :required ->
+              {:error, Error.new(:required, message || "is required", position: {:key, key})}
+
+            :optional ->
+              {:ok, map}
           end
       end
     end)
   end
-
-  defp required?(:required), do: true
-  defp required?(:optional), do: false
 
   @doc """
   Combines `combinator` with a validator that validates string length.
