@@ -257,7 +257,9 @@ defmodule Vaxin do
 
         :error ->
           case condition do
-            {:optional, [default: default_value]} ->
+            {:optional, options} ->
+              default_value = Keyword.fetch!(options, :default)
+
               {:ok, Map.put_new(map, key, default_value)}
 
             :required ->
