@@ -496,6 +496,41 @@ defmodule VaxinTest do
     end
   end
 
+  describe "put_new/3" do
+    test "puts value under key unless key already exists" do
+      validation =
+        (&is_map/1)
+        |> validate_key("foo", :optional, &is_binary/1)
+        |> put_new("foo", "bar")
+        |> validate(%{})
+
+      assert validation == {:ok, %{"foo" => "bar"}}
+
+      validation =
+        (&is_map/1)
+        |> validate_key("foo", :optional, &is_binary/1)
+        |> put_new("foo", "bar")
+        |> validate(%{"foo" => "foo"})
+
+      assert validation == {:ok, %{"foo" => "foo"}}
+
+      validation =
+        (&is_map/1)
+        |> validate_key("foo", :required, &is_binary/1)
+        |> put_new("foo", "bar")
+        |> validate(%{})
+
+      assert validation ==
+               {:error,
+                %Vaxin.Error{
+                  __exception__: true,
+                  message: "is required",
+                  metadata: [position: {:key, "foo"}],
+                  validator: :required
+                }}
+    end
+  end
+
   defp validate_error(validator, data) do
     assert {:error, error} = validate(validator, data)
     Exception.message(error)
