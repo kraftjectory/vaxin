@@ -479,4 +479,25 @@ defmodule Vaxin do
   def transform(combinator \\ noop(), transformer) do
     combine(combinator, &{:ok, transformer.(&1)})
   end
+
+  @doc """
+  Puts the given value under key unless the entry key already exists in map
+
+  ## Examples
+
+      iex> import Vaxin
+      iex> validator = validate_key(&is_map/1, "foo", :optional, &is_binary/1)
+      iex> validator = put_new(validator, "foo", "bar")
+      iex> validate(validator, %{})
+      {:ok, %{"foo" => "bar"}}
+
+      iex> validator = validate_key(&is_map/1, "foo", :optional, &is_binary/1)
+      iex> validator = put_new(validator, "foo", "foo")
+      iex> validate(validator, %{"foo" => "bar"})
+      {:ok, %{"foo" => "bar"}}
+  """
+  @spec put_new(validator(), key :: any(), value :: any()) :: validator()
+  def put_new(combinator \\ noop(), key, value) do
+    combine(combinator, &{:ok, Map.put_new(&1, key, value)})
+  end
 end
