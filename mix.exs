@@ -2,7 +2,7 @@ defmodule Vaxin.MixProject do
   use Mix.Project
 
   @name "Vaxin"
-  @version "0.1.0"
+  @version "0.2.0"
   @source_url "https://github.com/kraftjectory/vaxin"
 
   def project() do
