@@ -181,6 +181,37 @@ defmodule Vaxin do
   end
 
   @doc """
+  Merges a validator returned by an anonymous function.
+
+  This function is useful when the validator to be combined requires information from the previous validator.
+  If you want to simply merge two validators, use `Vaxin.combine/2` instead.
+
+  ### Examples
+
+      iex> validator =
+      ...>   validate_key("type", :required, validate_inclusion(["user", "guest"]))
+      ...>   |> merge(fn
+      ...>     %{"type" => "user"} ->
+      ...>       validate_key("user_id", :required, &is_binary/1)
+      ...>
+      ...>     %{"type" => "guest"} ->
+      ...>       validate_key("guest_id", :required, &is_binary/1)
+      ...>   end)
+      ...>
+      iex> Vaxin.validate(validator, %{"type" => "user", "user_id" => "user-1"})
+      {:ok, %{"type" => "user", "user_id" => "user-1"}}
+      iex> Vaxin.validate(validator, %{"type" => "guest", "guest_id" => "guest-1"})
+      {:ok, %{"type" => "guest", "guest_id" => "guest-1"}}
+  """
+  @spec merge(validator(), (any() -> validator())) :: validator()
+  def merge(validator, merge)
+      when is_function(validator, 1) and is_function(merge, 1) do
+    combine(validator, fn value ->
+      merge.(value) |> validate(value)
+    end)
+  end
+
+  @doc """
   Returns a validator that always passes. It is useful placing in the beginning of the validator chain.
 
   ### Examples

@@ -531,6 +531,34 @@ defmodule VaxinTest do
     end
   end
 
+  describe "merge/2" do
+    test "merges a validator returned by an anonymous function" do
+      params = %{
+        "type" => "user",
+        "user_id" => "user-1"
+      }
+
+      validator =
+        validate_key("type", :required, validate_inclusion(["user", "guest"]))
+        |> merge(fn
+          %{"type" => "user"} ->
+            validate_key("user_id", :required, &is_binary/1)
+
+          %{"type" => "guest"} ->
+            validate_key("guest_id", :required, &is_binary/1)
+        end)
+
+      assert validate(validator, params) == {:ok, params}
+
+      params = %{
+        "type" => "guest",
+        "guest_id" => "guest-1"
+      }
+
+      assert validate(validator, params) == {:ok, params}
+    end
+  end
+
   defp validate_error(validator, data) do
     assert {:error, error} = validate(validator, data)
     Exception.message(error)
