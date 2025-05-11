@@ -126,6 +126,9 @@ defmodule Vaxin.Error do
       predicate == (&is_atom/1) ->
         {"must be an atom", [kind: :is_atom]}
 
+      predicate == (&is_nil/1) ->
+        {"must be nil", [kind: :is_nil]}
+
       true ->
         {"is invalid", [kind: :predicate]}
     end
