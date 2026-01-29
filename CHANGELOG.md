@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.3.1
+
+- Fix a bug to ensure `validate_string_length/2` handle string by default.
+
 ## v0.3.0
 
 - Introduce `merge/2`.
