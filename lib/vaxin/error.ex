@@ -100,10 +100,10 @@ defmodule Vaxin.Error do
   def message_from_predicate(predicate) do
     cond do
       predicate == (&String.valid?/1) ->
-        {"must be a string", [kind: :is_string]}
+        {"must be a UTF-8 string", [kind: :is_string]}
 
       predicate == (&is_binary/1) ->
-        {"must be a binary", [kind: :is_binary]}
+        {"must be a string", [kind: :is_binary]}
 
       predicate == (&is_integer/1) ->
         {"must be an integer", [kind: :is_integer]}

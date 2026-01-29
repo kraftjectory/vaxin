@@ -415,7 +415,11 @@ defmodule VaxinTest do
         |> validate_key(
           "email",
           :optional,
-          validate_format(&String.valid?/1, ~r/@/, message: "is not a valid email")
+          validate_format(
+            all_of([&is_binary/1, &String.valid?/1]),
+            ~r/@/,
+            message: "is not a valid email"
+          )
         )
         |> validate_key("birthdate", :optional, &match?(%Date{}, &1),
           message: "is not a valid date"
@@ -489,7 +493,7 @@ defmodule VaxinTest do
       assert validate(validator, 1) ==
                {:error,
                 %Vaxin.Error{
-                  message: "must be a binary",
+                  message: "must be a string",
                   metadata: [kind: :is_binary],
                   validator: &:erlang.is_binary/1
                 }}

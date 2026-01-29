@@ -312,7 +312,7 @@ defmodule Vaxin do
 
   """
   @spec validate_string_length(validator(), Keyword.t()) :: validator()
-  def validate_string_length(validator \\ &String.valid?/1, options)
+  def validate_string_length(validator \\ all_of([&is_binary/1, &String.valid?/1]), options)
 
   def validate_string_length(validator, options) do
     combine(validator, fn value ->
@@ -394,7 +394,7 @@ defmodule Vaxin do
 
   """
   @spec validate_format(validator(), Regex.t(), Keyword.t()) :: validator()
-  def validate_format(combinator \\ &String.valid?/1, format, options \\ []) do
+  def validate_format(combinator \\ all_of([&is_binary/1, &String.valid?/1]), format, options \\ []) do
     combine(combinator, fn value ->
       if value =~ format do
         {:ok, value}
