@@ -7,7 +7,7 @@ A validator combinator library for Elixir
 ```elixir
 def deps() do
   [
-    {:vaxin, "~> 0.3"}
+    {:vaxin, "~> 0.4"}
   ]
 end
 ```

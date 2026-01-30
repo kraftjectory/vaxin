@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.4.0
+
+- Introduce `validate_exclusive_keys/3`.
+
 ## v0.3.1
 
 - Fix a bug to ensure `validate_string_length/2` handle string by default.
