@@ -563,6 +563,34 @@ defmodule VaxinTest do
     end
   end
 
+  describe "validate_exclusive_keys/3" do
+    test "validates exact one key can be provided" do
+      validator = validate_exclusive_keys(["foo", "bar"], :required)
+
+      assert {:error, error} = validate(validator, %{"foo" => 1, "bar" => 2})
+
+      assert Exception.message(error) ==
+               ~s(must include exact one of the following keys: "foo", "bar")
+
+      assert {:error, error} = validate(validator, %{})
+      assert Exception.message(error) == ~s(must provide one of the following keys: "foo", "bar")
+
+      assert {:ok, _} = validate(validator, %{"foo" => 1})
+      assert {:ok, _} = validate(validator, %{"bar" => 1})
+
+      validator = validate_exclusive_keys(["foo", "bar"], :optional)
+
+      assert {:error, error} = validate(validator, %{"foo" => 1, "bar" => 2})
+
+      assert Exception.message(error) ==
+               ~s(must include exact one of the following keys: "foo", "bar")
+
+      assert {:ok, _} = validate(validator, %{})
+      assert {:ok, _} = validate(validator, %{"foo" => 1})
+      assert {:ok, _} = validate(validator, %{"bar" => 1})
+    end
+  end
+
   defp validate_error(validator, data) do
     assert {:error, error} = validate(validator, data)
     Exception.message(error)

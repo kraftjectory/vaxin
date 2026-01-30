@@ -289,6 +289,61 @@ defmodule Vaxin do
   defp required?(:optional), do: false
 
   @doc """
+  Validates that exactly one key from the `keys` list is present.
+
+  ## Options
+
+  * `message` - the error message when the validator fails. Defaults to:
+  `"must include exact one of the following keys: %{keys}"`.
+
+  ## Examples
+
+      iex> validator = Vaxin.validate_exclusive_keys([:foo, :bar, :qwe], :required)
+      iex> Vaxin.validate(validator, %{foo: 1})
+      {:ok, %{foo: 1}}
+      iex> {:error, error} = Vaxin.validate(validator, %{baz: 1})
+      iex> Exception.message(error)
+      "must provide one of the following keys: :foo, :bar, :qwe"
+      iex> {:error, error} = Vaxin.validate(validator, %{foo: 1, bar: 2})
+      iex> Exception.message(error)
+      "must include exact one of the following keys: :foo, :bar, :qwe"
+  """
+  @spec validate_exclusive_keys(validator(), keys :: [term()], :required | :optional, Keyword.t()) ::
+          validator()
+  def validate_exclusive_keys(combinator \\ &is_map/1, keys, required_or_optional, options \\ [])
+
+  def validate_exclusive_keys(combinator, keys, required_or_optional, options)
+      when is_list(keys) do
+    combine(combinator, fn map ->
+      message = options[:message]
+
+      filtered_map = Map.take(map, keys)
+      founds = map_size(filtered_map)
+
+      cond do
+        founds > 1 ->
+          {:error,
+           Error.new(
+             :exclusive_keys,
+             message || "must include exact one of the following keys: %{keys}",
+             keys: Enum.map_join(keys, ", ", &inspect/1)
+           )}
+
+        founds == 0 and required?(required_or_optional) ->
+          {:error,
+           Error.new(
+             :exclusive_keys,
+             message || "must provide one of the following keys: %{keys}",
+             keys: Enum.map_join(keys, ", ", &inspect/1)
+           )}
+
+        true ->
+          {:ok, map}
+      end
+    end)
+  end
+
+  @doc """
   Combines `combinator` with a validator that validates string length.
 
   ## Options
@@ -394,7 +449,11 @@ defmodule Vaxin do
 
   """
   @spec validate_format(validator(), Regex.t(), Keyword.t()) :: validator()
-  def validate_format(combinator \\ all_of([&is_binary/1, &String.valid?/1]), format, options \\ []) do
+  def validate_format(
+        combinator \\ all_of([&is_binary/1, &String.valid?/1]),
+        format,
+        options \\ []
+      ) do
     combine(combinator, fn value ->
       if value =~ format do
         {:ok, value}
