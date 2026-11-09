@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+- Introduce `validate_enum_size/2`.
+
 ## v0.4.0
 
 - Introduce `validate_exclusive_keys/3`.

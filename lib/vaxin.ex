@@ -343,6 +343,12 @@ defmodule Vaxin do
     end)
   end
 
+  @string_length_messages %{
+    exact: "must be %{length} byte(s)",
+    min: "must be at least %{length} byte(s)",
+    max: "must be at most %{length} byte(s)"
+  }
+
   @doc """
   Combines `combinator` with a validator that validates string length.
 
@@ -371,27 +377,37 @@ defmodule Vaxin do
 
   def validate_string_length(validator, options) do
     combine(validator, fn value ->
-      {message, options} = Keyword.pop(options, :message)
+      {message, bounds} = Keyword.pop(options, :message)
 
-      with :ok <- do_validate_length(options, byte_size(value), message), do: {:ok, value}
+      case check_size(bounds, byte_size(value)) do
+        :ok ->
+          {:ok, value}
+
+        {:error, bound, target} ->
+          default_message = Map.fetch!(@string_length_messages, bound)
+
+          {:error,
+           Error.new(:string_length, message || default_message, kind: bound, length: target)}
+      end
     end)
   end
 
-  @length_validators %{
-    exact: {&==/2, "must be %{length} byte(s)"},
-    min: {&>=/2, "must be at least %{length} byte(s)"},
-    max: {&<=/2, "must be at most %{length} byte(s)"}
+  @size_comparators %{
+    exact: &==/2,
+    min: &>=/2,
+    max: &<=/2
   }
 
-  defp do_validate_length([], _, _), do: :ok
+  # Returns the first bound (`exact`, `min` or `max`) that `size` violates.
+  defp check_size([], _size), do: :ok
 
-  defp do_validate_length([{spec, target} | rest], count, message) do
-    {comparator, default_message} = Map.fetch!(@length_validators, spec)
+  defp check_size([{bound, target} | rest], size) do
+    comparator = Map.fetch!(@size_comparators, bound)
 
-    if comparator.(count, target) do
-      do_validate_length(rest, count, message)
+    if comparator.(size, target) do
+      check_size(rest, size)
     else
-      {:error, Error.new(:string_length, message || default_message, kind: spec, length: target)}
+      {:error, bound, target}
     end
   end
 
@@ -552,6 +568,71 @@ defmodule Vaxin do
       # TODO: Handle map keys better.
       |> Enum.with_index()
       |> Vaxin.Enum.validate(each_validator, [], skip_invalid?, into, options[:message])
+    end)
+  end
+
+  @enum_size_messages %{
+    exact: "must have %{count} item(s)",
+    min: "must have at least %{count} item(s)",
+    max: "must have at most %{count} item(s)"
+  }
+
+  @doc """
+  Combines `combinator` with a validator that validates the number of items in an enum.
+
+  Items are counted with `Enum.count/1`, so a map counts its entries. `combinator` must
+  guarantee the term is enumerable, for example `&is_list/1` or `&is_map/1`.
+
+  ## Options
+
+  * `exact` - the number of items must be exact this value.
+  * `min` - the number of items must be greater than or equal to this value.
+  * `max` - the number of items must be less than or equal to this value.
+  * `message` - the message on failure. Defaults to either:
+    * must have %{count} item(s)
+    * must have at least %{count} item(s)
+    * must have at most %{count} item(s)
+
+  ## Examples
+
+      iex> import Vaxin
+      iex> validator = validate_enum_size(&is_list/1, min: 1, max: 3)
+      iex> validate(validator, ["foo"])
+      {:ok, ["foo"]}
+      iex> {:error, error} = validate(validator, [])
+      iex> Exception.message(error)
+      "must have at least 1 item(s)"
+
+  Combined with `validate_enum/3`, the size is checked before the items:
+
+      iex> import Vaxin
+      iex> validator =
+      ...>   (&is_list/1)
+      ...>   |> validate_enum_size(max: 2)
+      ...>   |> validate_enum(&is_binary/1)
+      iex> validate(validator, ["foo", "bar"])
+      {:ok, ["foo", "bar"]}
+      iex> {:error, error} = validate(validator, ["foo", "bar", 1])
+      iex> Exception.message(error)
+      "must have at most 2 item(s)"
+      iex> {:error, error} = validate(validator, ["foo", 1])
+      iex> Exception.message(error)
+      "[1] must be a string"
+
+  """
+  @spec validate_enum_size(validator(), Keyword.t()) :: validator()
+  def validate_enum_size(combinator, options) do
+    combine(combinator, fn enum ->
+      {message, bounds} = Keyword.pop(options, :message)
+
+      case check_size(bounds, Enum.count(enum)) do
+        :ok ->
+          {:ok, enum}
+
+        {:error, bound, target} ->
+          default_message = Map.fetch!(@enum_size_messages, bound)
+          {:error, Error.new(:enum_size, message || default_message, kind: bound, count: target)}
+      end
     end)
   end
 
