@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## v0.5.0
 
 - Introduce `validate_enum_size/2`.
 
