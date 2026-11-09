@@ -339,6 +339,141 @@ defmodule VaxinTest do
     end
   end
 
+  describe "validate_enum_size" do
+    test ":exact option" do
+      validator = validate_enum_size(&is_list/1, exact: 2)
+
+      assert validate(validator, [1, 2]) == {:ok, [1, 2]}
+
+      assert {:error, error} = validate(validator, [1])
+
+      assert error == %Error{
+               message: "must have %{count} item(s)",
+               metadata: [kind: :exact, count: 2],
+               validator: :enum_size
+             }
+
+      assert Exception.message(error) == "must have 2 item(s)"
+    end
+
+    test ":min option" do
+      validator = validate_enum_size(&is_list/1, min: 1)
+
+      assert validate(validator, [1]) == {:ok, [1]}
+
+      assert {:error, error} = validate(validator, [])
+
+      assert error == %Error{
+               message: "must have at least %{count} item(s)",
+               metadata: [kind: :min, count: 1],
+               validator: :enum_size
+             }
+
+      assert Exception.message(error) == "must have at least 1 item(s)"
+    end
+
+    test ":max option" do
+      validator = validate_enum_size(&is_list/1, max: 1)
+
+      assert validate(validator, [1]) == {:ok, [1]}
+
+      assert {:error, error} = validate(validator, [1, 2])
+
+      assert error == %Error{
+               message: "must have at most %{count} item(s)",
+               metadata: [kind: :max, count: 1],
+               validator: :enum_size
+             }
+
+      assert Exception.message(error) == "must have at most 1 item(s)"
+    end
+
+    test ":message option" do
+      validator = validate_enum_size(&is_list/1, max: 1, message: "too many items")
+
+      assert validate(validator, [1, 2]) ==
+               {:error,
+                %Error{
+                  message: "too many items",
+                  metadata: [kind: :max, count: 1],
+                  validator: :enum_size
+                }}
+    end
+
+    test "counts map entries" do
+      validator = validate_enum_size(&is_map/1, min: 1, max: 2)
+
+      assert validate(validator, %{"a" => 1, "b" => 2}) == {:ok, %{"a" => 1, "b" => 2}}
+
+      assert {:error, error} = validate(validator, %{"a" => 1, "b" => 2, "c" => 3})
+      assert Exception.message(error) == "must have at most 2 item(s)"
+    end
+
+    test "supports MapSet and range" do
+      validator = validate_enum_size(noop(), exact: 3)
+
+      assert validate(validator, MapSet.new([1, 2, 3])) == {:ok, MapSet.new([1, 2, 3])}
+      assert validate(validator, 1..3) == {:ok, 1..3}
+
+      assert {:error, error} = validate(validator, MapSet.new([1, 1, 2]))
+      assert Exception.message(error) == "must have 3 item(s)"
+    end
+
+    test "ensures enum through combinator" do
+      validator = validate_enum_size(&is_list/1, min: 1)
+
+      assert validate(validator, "foo") ==
+               {:error,
+                %Error{
+                  message: "must be a list",
+                  metadata: [kind: :is_list],
+                  validator: &is_list/1
+                }}
+    end
+
+    test "checks size before validating items" do
+      validator =
+        (&is_list/1)
+        |> validate_enum_size(min: 1, max: 3)
+        |> validate_enum(&is_binary/1)
+
+      assert validate(validator, ["a", "b"]) == {:ok, ["a", "b"]}
+
+      assert {:error, error} = validate(validator, [])
+      assert Exception.message(error) == "must have at least 1 item(s)"
+
+      assert {:error, error} = validate(validator, ["a", "b", "c", 1])
+      assert Exception.message(error) == "must have at most 3 item(s)"
+
+      assert {:error, error} = validate(validator, ["a", 1])
+      assert Exception.message(error) == "[1] must be a string"
+    end
+
+    test "works under a key" do
+      labels_validator =
+        (&is_list/1)
+        |> validate_enum_size(min: 1, max: 3)
+        |> validate_enum(&is_binary/1)
+
+      validator = validate_key("labels", :required, labels_validator)
+
+      assert validate(validator, %{"labels" => ["a"]}) == {:ok, %{"labels" => ["a"]}}
+
+      assert {:error, error} = validate(validator, %{"labels" => []})
+
+      assert error == %Error{
+               message: "must have at least %{count} item(s)",
+               metadata: [position: {:key, "labels"}, kind: :min, count: 1],
+               validator: :enum_size
+             }
+
+      assert Exception.message(error) == ~s["labels" must have at least 1 item(s)]
+
+      assert {:error, error} = validate(validator, %{"labels" => ["a", 1]})
+      assert Exception.message(error) == ~s("labels"[1] must be a string)
+    end
+  end
+
   describe "validate_key" do
     test "validates required keys" do
       validator = validate_key(&is_map/1, "foo", :required, &is_binary/1)
